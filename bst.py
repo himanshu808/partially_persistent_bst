@@ -85,6 +85,7 @@ class BST:
             parent_node.right = None
         else:
             parent_node.left = None
+        parent_node.update_fat_node(self.current_version)
 
     def delete_node_with_single_child(self, node):
         parent_node = node.parent
@@ -101,13 +102,16 @@ class BST:
                     parent_node.left = node.left
                 else:
                     parent_node.left = node.right
+            parent_node.update_fat_node(self.current_version)
 
         if node.left:
             node.left.parent = parent_node
             self.recalculate_subtree_levels(node.left)
+            node.left.update_fat_node(self.current_version)
         else:
             node.right.parent = parent_node
             self.recalculate_subtree_levels(node.right)
+            node.right.update_fat_node(self.current_version)
 
     def find_min_value_node(self, node):
         while node.left is not None:
@@ -117,16 +121,41 @@ class BST:
     def delete_node_with_two_children(self, node):
         inorder_successor = self.find_min_value_node(node.right)
 
-        node.value = inorder_successor.value
-
         if inorder_successor is node.right:
             inorder_successor.parent.right = inorder_successor.right
         else:
             inorder_successor.parent.left = inorder_successor.right
-            self.recalculate_subtree_levels(inorder_successor.right)
-        inorder_successor.parent = None
-        return inorder_successor
 
+        if inorder_successor.right:
+            inorder_successor.right.parent = inorder_successor.parent
+            inorder_successor.right.update_fat_node(self.current_version)  # updating right child
+
+        inorder_successor.parent.update_fat_node(self.current_version)  # updating old parent
+        self.recalculate_subtree_levels(inorder_successor.right)
+
+        inorder_successor.left = node.left
+        inorder_successor.right = node.right
+        inorder_successor.parent = node.parent
+        inorder_successor.level = node.level
+
+        if inorder_successor.left:
+            inorder_successor.left.parent = inorder_successor
+            inorder_successor.left.update_fat_node(self.current_version)
+
+        if inorder_successor.right:
+            inorder_successor.right.parent = inorder_successor
+            inorder_successor.right.update_fat_node(self.current_version)
+
+        if node is self.root:
+            self.root = inorder_successor
+        else:
+            if node.value > node.parent.value:
+                node.parent.right = inorder_successor
+            else:
+                node.parent.left = inorder_successor
+            inorder_successor.parent.update_fat_node(self.current_version)  # updating new parent
+
+        inorder_successor.update_fat_node(self.current_version)
     def recalculate_subtree_levels(self, node):
         if node is None:
             return
@@ -157,18 +186,27 @@ class BST:
         #         return right_level + 1
 
     def delete_node(self, value):
+        self.current_version += 1
         node_to_delete = self.find_node(value)
         if node_to_delete is None:
+            self.current_version -= 1
             print('no such node')
+            return
         elif node_to_delete.left is None and node_to_delete.right is None:
             self.delete_leaf_node(node_to_delete)
         elif (node_to_delete.left is not None) ^ (node_to_delete.right is not None):
             self.delete_node_with_single_child(node_to_delete)
         else:
-            node_to_delete = self.delete_node_with_two_children(node_to_delete)
+            self.delete_node_with_two_children(node_to_delete)
+
+        node_to_delete.left = None
+        node_to_delete.right = None
+        node_to_delete.parent = None
+        node_to_delete.update_fat_node(self.current_version)
 
         self.recalculate_max_level(self.root)
         self.version_max_level[self.current_version] = self.max_level
+        self.access_pointers[self.current_version] = self.root
 
     def print_tree(self):
         if self.root is None:

@@ -5,3 +5,4 @@ class FatNode:
             getattr(self, attr)[version] = getattr(ephemeral_node, attr)
 
         self.version = version
+        self.version_list = [version]

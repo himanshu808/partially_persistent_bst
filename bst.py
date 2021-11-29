@@ -25,6 +25,7 @@ class BST:
         self.max_level = -1
         self.current_version = 0
         self.access_pointers = dict()
+        self.version_max_level = dict()
 
     def find_parent_node(self, value):
         parent_node = None
@@ -72,6 +73,7 @@ class BST:
             parent_node.update_fat_node(self.current_version)
             if node.level > self.max_level:
                 self.max_level = node.level
+        self.version_max_level[self.current_version] = self.max_level
         self.access_pointers[self.current_version] = self.root
 
     def delete_leaf_node(self, node):
@@ -165,10 +167,8 @@ class BST:
         else:
             node_to_delete = self.delete_node_with_two_children(node_to_delete)
 
-        del node_to_delete
-        self.max_level = -1
-        # self.max_level = self.recalculate_max_level(self.root) - 1
         self.recalculate_max_level(self.root)
+        self.version_max_level[self.current_version] = self.max_level
 
     def print_tree(self):
         if self.root is None:

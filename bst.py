@@ -1,19 +1,30 @@
+from fat_node import FatNode
+
+
 class BSTNode:
-    def __init__(self, value, level, left=None, right=None, parent=None):
+    def __init__(self, value, level, version, left=None, right=None, parent=None):
         self.value = value
         self.level = level
         self.right = right
         self.left = left
         self.parent = parent
+        self.fat_node = FatNode(self, version)
 
     def __repr__(self):
         return str(self.value)
+
+    def update_fat_node(self, version):
+        for attr in self.fat_node.__dict__:
+            if attr in self.__dict__:
+                getattr(self.fat_node, attr)[version] = getattr(self, attr)
 
 
 class BST:
     def __init__(self):
         self.root = None
         self.max_level = -1
+        self.current_version = 0
+        self.access_pointers = dict()
 
     def find_parent_node(self, value):
         parent_node = None
@@ -47,18 +58,21 @@ class BST:
         return tree
 
     def insert_node(self, value):
+        self.current_version += 1
         if self.root is None:
-            self.root = BSTNode(value, 0)
+            self.root = BSTNode(value, 0, self.current_version)
             self.max_level = 0
         else:
             parent_node = self.find_parent_node(value)
-            node = BSTNode(value, parent_node.level + 1, parent=parent_node)
+            node = BSTNode(value, parent_node.level + 1, self.current_version, parent=parent_node)
             if value <= parent_node.value:
                 parent_node.left = node
             else:
                 parent_node.right = node
+            parent_node.update_fat_node(self.current_version)
             if node.level > self.max_level:
                 self.max_level = node.level
+        self.access_pointers[self.current_version] = self.root
 
     def delete_leaf_node(self, node):
         if node is self.root:
